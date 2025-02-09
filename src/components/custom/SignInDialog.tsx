@@ -14,6 +14,7 @@ import axios from "axios";
 import { UserDetailContext } from "@/context/UserDetailContext";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { useRouter } from "next/navigation";
 
 interface SignInDialogProps {
   openDialog: boolean;
@@ -50,6 +51,7 @@ const SignInDialog: React.FC<SignInDialogProps> = ({
   closeDialog,
 }) => {
   const userContext = useContext(UserDetailContext);
+  const router = useRouter();
   if (!userContext) {
     throw new Error("Hero must be used within a UserProvider");
   }
@@ -89,11 +91,10 @@ const SignInDialog: React.FC<SignInDialogProps> = ({
           token : newUser?.token || 0
         };
 
-        console.log("userData" , userData);
-
         if (typeof window !== "undefined") {
           try {
             localStorage.setItem("user", JSON.stringify(userData));
+            router.push('/');
           } catch (error) {
             console.error("Error storing user data in localStorage:", error);
           }
