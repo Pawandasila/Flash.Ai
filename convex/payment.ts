@@ -59,13 +59,13 @@ export const Payment = mutation({
       payment_method,
     });
 
-    if (payment_status === "successful") {
-      await ctx.db.users.update(userId, {
-        data: {
-          token: user.token + amount,
-        },
-      });
-    }
+    // if (payment_status === "successful") {
+    //   await ctx.db.users.update(userId, {
+    //     data: {
+    //       token: user.token + amount,
+    //     },
+    //   });
+    // }
 
     return payment;
   },
