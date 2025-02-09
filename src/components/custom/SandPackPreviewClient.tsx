@@ -35,7 +35,7 @@ const SandPackPreviewClient = () => {
   return (
     <div>
       {/* Forward the ref to the SandpackPreview */}
-      <SandpackPreview ref={previewRef} showNavigator showRefreshButton />
+      <SandpackPreview showNavigator showRefreshButton />
     </div>
   );
 };

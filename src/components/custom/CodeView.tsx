@@ -8,28 +8,43 @@ import {
   SandpackFileExplorer,
   SandpackConsole,
   useSandpack,
+  SandpackFiles,
+  SandpackOptions,
 } from "@codesandbox/sandpack-react";
 import { Code, Eye, Terminal } from "lucide-react";
 import config from "@/data/Lookup";
 import axios from "axios";
-import { MessageContext } from "@/context/MessageContext";
+import { MessageContext} from "@/context/MessageContext";
 import Prompt from "@/data/Prompt";
 import { useConvex, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useParams } from "next/navigation";
 import CodeViewSkeleton from "./CodeViewSkeleton";
 import { countToken } from "./ChatView";
-import { UserDetailContext } from "@/context/UserDetailContext";
-import SandPackPreviewClient from "./SandPackPreviewClient";
+import { UserDetailContext} from "@/context/UserDetailContext";
+import { Id } from "../../../convex/_generated/dataModel";
 
-const SandpackContent = ({
+interface Tab {
+  id: "code" | "preview";
+  label: string;
+  icon: React.FC<{ className?: string }>;
+}
+
+interface SandpackContentProps {
+  showConsole: boolean;
+  setShowConsole: (show: boolean) => void;
+  activeTab: "code" | "preview";
+  setActiveTab: (tab: "code" | "preview") => void;
+}
+
+const SandpackContent: React.FC<SandpackContentProps> = ({
   showConsole,
   setShowConsole,
   activeTab,
   setActiveTab,
 }) => {
   const { sandpack } = useSandpack();
-  const tabs = [
+  const tabs: Tab[] = [
     { id: "code", label: "Code", icon: Code },
     { id: "preview", label: "Preview", icon: Eye },
   ];
@@ -104,7 +119,19 @@ const SandpackContent = ({
             />
           </>
         ) : (
-          <SandPackPreviewClient/>
+          <div className="w-full h-full bg-[#1c1c1c]">
+            <SandpackPreview
+              showNavigator={true}
+              showRefreshButton={true}
+              showOpenInCodeSandbox={true}
+              style={{
+                height: showConsole ? "calc(70vh - 60px)" : "calc(100vh - 60px)",
+                border: "none",
+                marginTop: 0,
+                background: "#ffffff",
+              }}
+            />
+          </div>
         )}
         {showConsole && (
           <div className="border-t border-gray-800">
@@ -116,20 +143,21 @@ const SandpackContent = ({
   );
 };
 
-const CodeView = () => {
-  const { id } = useParams();
-  const workSpaceId = id;
-  const [activeTab, setActiveTab] = useState("code");
+interface CodeViewProps {}
+
+const CodeView: React.FC<CodeViewProps> = () => {
+  const params = useParams();
+  const workSpaceId = params?.id as string;
+  const [activeTab, setActiveTab] = useState<"code" | "preview">("code");
   const [showConsole, setShowConsole] = useState(false);
   const userContext = useContext(UserDetailContext);
-  const [files, setFiles] = useState(config?.DEFAULT_FILE);
+  const [files, setFiles] = useState<SandpackFiles>(config.DEFAULT_FILE as SandpackFiles);
   const [isLoading, setIsLoading] = useState(true);
   const [isClient, setIsClient] = useState(false);
   const UpdateFiles = useMutation(api.workSpace.UpdateFile);
   const UpdateToken = useMutation(api.users.updateToken);
   const convex = useConvex();
 
-  // Handle client-side mounting
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -140,31 +168,35 @@ const CodeView = () => {
   }
 
   const { message, setMessage } = messageContext;
-
-  const { userDetail } = userContext;
+  const { userDetail } = userContext || {};
 
   useEffect(() => {
     if (workSpaceId) {
-      getFiles();
+      void getFiles();
     }
   }, [workSpaceId]);
 
   useEffect(() => {
     const lastMessage = message?.[message.length - 1];
     if (lastMessage?.role === "User") {
-      GenerateCode();
+      void GenerateCode();
     }
   }, [message]);
 
-  const getFiles = async () => {
+  const getFiles = async (): Promise<void> => {
     setIsLoading(true);
     try {
       const result = await convex.query(api.workSpace.getWorkSpace, {
-        workSpaceId: workSpaceId,
+        workSpaceId: workSpaceId as Id<"workSpace">,
       });
 
-      const mergedFiles = { ...config, ...result?.fileData };
-      setFiles(mergedFiles);
+      if (result?.fileData) {
+        const mergedFiles: SandpackFiles = {
+          ...config.DEFAULT_FILE as SandpackFiles,
+          ...result.fileData as SandpackFiles,
+        };
+        setFiles(mergedFiles);
+      }
     } catch (error) {
       console.error("Error fetching files:", error);
     } finally {
@@ -172,30 +204,38 @@ const CodeView = () => {
     }
   };
 
-  const GenerateCode = async () => {
+  const GenerateCode = async (): Promise<void> => {
+    if (!userDetail?.id) return;
+    
     setIsLoading(true);
     try {
       const messageContent = message.map((msg) => msg.content).join(" ");
       const fullPrompt = `${JSON.stringify(messageContent)} ${Prompt.CODE_GEN_PROMPT || ""}`;
 
-      const result = await axios.post("/api/generate-code", {
-        prompt: fullPrompt,
-      });
+      const result = await axios.post<{ files: SandpackFiles }>(
+        "/api/generate-code",
+        { prompt: fullPrompt }
+      );
 
       const aiRes = result.data;
-      const mergedFiles = { ...config, ...aiRes?.files };
+      if (aiRes?.files) {
+        const mergedFiles: SandpackFiles = {
+          ...config.DEFAULT_FILE as SandpackFiles,
+          ...aiRes.files,
+        };
 
-      const token = userDetail?.token - countToken(JSON.stringify(aiRes));
-      await UpdateToken({
-        userId: userDetail?.id,
-        token: token,
-      });
+        const token = (userDetail?.token ?? 0) - countToken(JSON.stringify(aiRes));
+        await UpdateToken({
+          userId: userDetail.id,
+          token,
+        });
 
-      setFiles(mergedFiles);
-      await UpdateFiles({
-        workSpaceId: workSpaceId,
-        files: aiRes?.files,
-      });
+        setFiles(mergedFiles);
+        await UpdateFiles({
+          workSpaceId: workSpaceId as Id<"workSpace">,
+          files: aiRes.files,
+        });
+      }
     } catch (error) {
       console.error("Error generating code:", error);
     } finally {
@@ -203,8 +243,20 @@ const CodeView = () => {
     }
   };
 
-  const customSetup = {
-    dependencies: { ...config.DEPENDENCIES },
+  const sandpackOptions: SandpackOptions = {
+    externalResources: ["https://unpkg.com/@tailwindcss/browser@4"],
+    autorun: false,
+    classes: {
+      "sp-wrapper": "h-full",
+      "sp-layout": "h-full",
+      "sp-stack": "h-full",
+    },
+    showTabs: true,
+    showLineNumbers: true,
+    showInlineErrors: true,
+    closableTabs: true,
+    wrapContent: true,
+    editorHeight: "calc(100vh - 60px)",
   };
 
   return (
@@ -216,23 +268,8 @@ const CodeView = () => {
           template="react"
           files={files}
           theme="dark"
-          customSetup={customSetup}
-          options={{
-            externalResources: ["https://unpkg.com/@tailwindcss/browser@4"],
-            autorun: false,
-            showNavigator: true,
-            showTabs: true,
-            showLineNumbers: true,
-            showInlineErrors: true,
-            closableTabs: true,
-            wrapContent: true,
-            editorHeight: "calc(100vh - 60px)",
-            classes: {
-              "sp-wrapper": "h-full",
-              "sp-layout": "h-full",
-              "sp-stack": "h-full",
-            },
-          }}
+          customSetup={{ dependencies: config.DEPENDENCIES }}
+          options={sandpackOptions}
         >
           <SandpackContent
             showConsole={showConsole}
