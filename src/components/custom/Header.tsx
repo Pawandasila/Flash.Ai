@@ -57,13 +57,13 @@ const Header = () => {
             ) : (
               <>
                 <div className="relative h-10 w-10">
-                  <SidebarTrigger>
+                  {/* <SidebarTrigger> */}
                   <img
                     src={userDetail.picture}
                     alt="User Avatar"
                     className="rounded-full border border-gray-500 object-cover h-full w-full"
                   />
-                  </SidebarTrigger>
+                  {/* </SidebarTrigger> */}
                 </div>
                 <span className="text-gray-100 font-medium min-w-[80px]">
                   {userDetail.name
