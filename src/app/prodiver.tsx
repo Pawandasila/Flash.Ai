@@ -113,8 +113,8 @@ const Provider = ({ children }: ProviderProps) => {
             disableTransitionOnChange
           >
             <div>
-              <SidebarProvider defaultOpen={false} className="z-50">
               <Header />
+              <SidebarProvider defaultOpen={false} className="z-50">
                 <AppSidebar />
                 {children}
               </SidebarProvider>
