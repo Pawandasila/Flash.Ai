@@ -11,18 +11,19 @@ import {
   SandpackFiles,
   SandpackOptions,
 } from "@codesandbox/sandpack-react";
-import { Code, Eye, Terminal } from "lucide-react";
+import { Code, Eye, Terminal, Play, RefreshCw } from "lucide-react";
 import config from "@/data/Lookup";
 import axios from "axios";
-import { MessageContext} from "@/context/MessageContext";
+import { MessageContext } from "@/context/MessageContext";
 import Prompt from "@/data/Prompt";
 import { useConvex, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useParams } from "next/navigation";
 import CodeViewSkeleton from "./CodeViewSkeleton";
-import { countToken } from "./ChatView";
-import { UserDetailContext} from "@/context/UserDetailContext";
+
+import { UserDetailContext } from "@/context/UserDetailContext";
 import { Id } from "../../../convex/_generated/dataModel";
+import MessageClassifier from "@/utils/messageClassifier";
 
 interface Tab {
   id: "code" | "preview";
@@ -35,6 +36,9 @@ interface SandpackContentProps {
   setShowConsole: (show: boolean) => void;
   activeTab: "code" | "preview";
   setActiveTab: (tab: "code" | "preview") => void;
+  onGenerateCode: () => void;
+  isGenerating: boolean;
+  hasGeneratedCode: boolean;
 }
 
 const SandpackContent: React.FC<SandpackContentProps> = ({
@@ -42,6 +46,9 @@ const SandpackContent: React.FC<SandpackContentProps> = ({
   setShowConsole,
   activeTab,
   setActiveTab,
+  onGenerateCode,
+  isGenerating,
+  hasGeneratedCode,
 }) => {
   const { sandpack } = useSandpack();
   const tabs: Tab[] = [
@@ -77,6 +84,48 @@ const SandpackContent: React.FC<SandpackContentProps> = ({
             })}
           </div>
           <div className="flex items-center gap-2">
+            {!hasGeneratedCode && (
+              <button
+                onClick={onGenerateCode}
+                disabled={isGenerating}
+                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium
+                  bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed
+                  transition-colors duration-200"
+              >
+                {isGenerating ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4" />
+                    Generate Code
+                  </>
+                )}
+              </button>
+            )}
+            {hasGeneratedCode && (
+              <button
+                onClick={onGenerateCode}
+                disabled={isGenerating}
+                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium
+                  bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed
+                  transition-colors duration-200"
+              >
+                {isGenerating ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Regenerating...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4" />
+                    Regenerate
+                  </>
+                )}
+              </button>
+            )}
             <button
               onClick={() => setShowConsole(!showConsole)}
               className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium
@@ -153,6 +202,8 @@ const CodeView: React.FC<CodeViewProps> = () => {
   const userContext = useContext(UserDetailContext);
   const [files, setFiles] = useState<SandpackFiles>(config.DEFAULT_FILE as SandpackFiles);
   const [isLoading, setIsLoading] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [hasGeneratedCode, setHasGeneratedCode] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const UpdateFiles = useMutation(api.workSpace.UpdateFile);
   const UpdateToken = useMutation(api.users.updateToken);
@@ -167,21 +218,13 @@ const CodeView: React.FC<CodeViewProps> = () => {
     throw new Error("Required context providers are missing");
   }
 
-  const { message, setMessage } = messageContext;
+  const { message } = messageContext;
   const { userDetail } = userContext || {};
-
   useEffect(() => {
     if (workSpaceId) {
-      void getFiles();
+      getFiles().catch(console.error);
     }
   }, [workSpaceId]);
-
-  useEffect(() => {
-    const lastMessage = message?.[message.length - 1];
-    if (lastMessage?.role === "User") {
-      void GenerateCode();
-    }
-  }, [message]);
 
   const getFiles = async (): Promise<void> => {
     setIsLoading(true);
@@ -196,6 +239,12 @@ const CodeView: React.FC<CodeViewProps> = () => {
           ...result.fileData as SandpackFiles,
         };
         setFiles(mergedFiles);
+        
+        // Check if we have generated code (not just default files)
+        const hasNonDefaultFiles = Object.keys(result.fileData).some(
+          key => !Object.keys(config.DEFAULT_FILE).includes(key)
+        );
+        setHasGeneratedCode(hasNonDefaultFiles);
       }
     } catch (error) {
       console.error("Error fetching files:", error);
@@ -203,19 +252,69 @@ const CodeView: React.FC<CodeViewProps> = () => {
       setIsLoading(false);
     }
   };
-
   const GenerateCode = async (): Promise<void> => {
-    if (!userDetail?.id) return;
+    if (!userDetail?.id || !message.length) {
+      console.error("Missing user details or messages");
+      return;
+    }
     
-    setIsLoading(true);
+    setIsGenerating(true);
+      // Create a timeout promise that rejects after 25 seconds with cleanup
+    let timeoutId: NodeJS.Timeout | undefined;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error('Code generation timeout')), 25000);
+    });
+    
     try {
       const messageContent = message.map((msg) => msg.content).join(" ");
-      const fullPrompt = `${JSON.stringify(messageContent)} ${Prompt.CODE_GEN_PROMPT || ""}`;
+      const lastMessage = message[message.length - 1];
+      
+      // Use the improved message classifier
+      const classification = MessageClassifier.classify(lastMessage?.content || messageContent);
+      
+      // Enhanced request with better structure using classification
+      const enhancedRequest = {
+        prompt: messageContent,
+        framework: classification?.suggestedFramework || 'react',
+        language: classification?.suggestedLanguage || 'javascript',
+        features: [], // Can be extracted from user input
+        styling: 'tailwind',
+        includeTests: false,
+        includeDocumentation: true,
+        classification: classification // Pass the full classification
+      };
 
-      const result = await axios.post<{ files: SandpackFiles }>(
-        "/api/generate-code",
-        { prompt: fullPrompt }
-      );
+      const fullPrompt = `${JSON.stringify(messageContent)} ${Prompt.CODE_GEN_PROMPT || ""}`;
+      
+      console.log('🚀 Generating code for request:', {
+        prompt: messageContent.slice(-100) + '...',
+        framework: enhancedRequest.framework,
+        language: enhancedRequest.language,
+        confidence: classification?.confidence
+      });
+        // Race between the API call and timeout
+      const apiCallPromise = axios.post<{ 
+        files: SandpackFiles;
+        projectTitle?: string;
+        explanation?: string;
+        dependencies?: Record<string, string>;
+        generatedFiles?: string[];
+      }>("/api/generate-code", { 
+        prompt: fullPrompt,
+        framework: enhancedRequest.framework,
+        language: enhancedRequest.language,
+        features: enhancedRequest.features,
+        styling: enhancedRequest.styling,
+        includeTests: enhancedRequest.includeTests,
+        includeDocumentation: enhancedRequest.includeDocumentation,
+        classification: enhancedRequest.classification
+      });
+      
+      const result = await Promise.race([apiCallPromise, timeoutPromise]);
+        // Clear timeout if API call succeeds
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
 
       const aiRes = result.data;
       if (aiRes?.files) {
@@ -224,22 +323,69 @@ const CodeView: React.FC<CodeViewProps> = () => {
           ...aiRes.files,
         };
 
-        const token = (userDetail?.token ?? 0) - countToken(JSON.stringify(aiRes));
-        await UpdateToken({
-          userId: userDetail.id,
-          token,
-        });
+        // Better token calculation
+        const responseSize = JSON.stringify(aiRes).length;
+        const estimatedTokens = Math.ceil(responseSize / 4); // Rough estimation: 4 chars per token
+        const token = Math.max(0, (userDetail?.token ?? 0) - estimatedTokens);
+        
+        try {
+          await UpdateToken({
+            userId: userDetail.id,
+            token,
+          });
 
-        setFiles(mergedFiles);
-        await UpdateFiles({
-          workSpaceId: workSpaceId as Id<"workSpace">,
-          files: aiRes.files,
-        });
+          setFiles(mergedFiles);
+          setHasGeneratedCode(true);
+          
+          await UpdateFiles({
+            workSpaceId: workSpaceId as Id<"workSpace">,
+            files: aiRes.files,
+          });
+
+          // Show success feedback
+          console.log('✅ Code generated successfully:', {
+            title: aiRes.projectTitle,
+            filesCount: Object.keys(aiRes.files).length,
+            estimatedTokens,
+            framework: enhancedRequest.framework
+          });
+          
+          // Auto-switch to code tab and run
+          setActiveTab("code");
+          setTimeout(() => {
+            setActiveTab("preview");
+          }, 1000);
+        } catch (updateError) {
+          console.error("❌ Error updating database:", updateError);
+          // Still set the files locally even if database update fails
+          setFiles(mergedFiles);
+          setHasGeneratedCode(true);
+        }
       }
-    } catch (error) {
-      console.error("Error generating code:", error);
+    } catch (error: any) {      // Clear timeout on error
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      
+      console.error("❌ Error generating code:", error);
+      
+      // Better error handling with user feedback
+      if (error?.message === 'Code generation timeout') {
+        console.error("⏰ Code generation timed out after 25 seconds");
+        // Could show timeout notification here
+      } else if (axios.isAxiosError(error)) {
+        const errorMessage = error.response?.data?.error || error.message;
+        console.error("API Error:", errorMessage);
+        
+        // Could show toast notification here
+        if (error.response?.status === 429) {
+          console.error("Rate limit exceeded. Please try again later.");
+        } else if (error.response?.status === 400) {
+          console.error("Invalid request. Please check your input.");
+        }
+      }
     } finally {
-      setIsLoading(false);
+      setIsGenerating(false);
     }
   };
 
@@ -259,6 +405,10 @@ const CodeView: React.FC<CodeViewProps> = () => {
     editorHeight: "calc(100vh - 60px)",
   };
 
+  if (!isClient) {
+    return <CodeViewSkeleton />;
+  }
+
   return (
     <div className="flex flex-col h-screen">
       {isLoading ? (
@@ -276,6 +426,9 @@ const CodeView: React.FC<CodeViewProps> = () => {
             setShowConsole={setShowConsole}
             activeTab={activeTab}
             setActiveTab={setActiveTab}
+            onGenerateCode={GenerateCode}
+            isGenerating={isGenerating}
+            hasGeneratedCode={hasGeneratedCode}
           />
         </SandpackProvider>
       )}

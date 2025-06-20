@@ -86,3 +86,64 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom scrollbar styles */
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  
+  .scrollbar-thumb-gray-600::-webkit-scrollbar-thumb {
+    background-color: rgb(75 85 99);
+    border-radius: 4px;
+  }
+  
+  .scrollbar-track-gray-800::-webkit-scrollbar-track {
+    background-color: rgb(31 41 55);
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgb(75 85 99);
+    border-radius: 4px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background-color: rgb(31 41 55);
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(107 114 128);
+  }
+  
+  /* For Firefox */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(75 85 99) rgb(31 41 55);
+  }
+}
+
+/* Additional chat UI improvements */
+@layer components {
+  .chat-message {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    max-width: 100%;
+  }
+  
+  .chat-container {
+    scroll-behavior: smooth;
+  }
+  
+  /* Prevent text overflow in messages */
+  .message-content {
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+}

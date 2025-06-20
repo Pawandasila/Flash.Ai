@@ -7,24 +7,39 @@ const {
 const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
 
+// Enhanced model with better configuration
 const model = genAI.getGenerativeModel({
   model: "gemini-2.0-flash",
+  safetySettings: [
+    {
+      category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+      threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+    },
+    {
+      category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+      threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+    },
+  ],
 });
 
+// Optimized generation config for better chat responses
 const generationConfig = {
-  temperature: 1,
-  topP: 0.95,
-  topK: 40,
-  maxOutputTokens: 8192,
+  temperature: 0.7,  // Reduced for more consistent responses
+  topP: 0.8,         // Reduced for better focus
+  topK: 20,          // Reduced for more deterministic responses
+  maxOutputTokens: 4096,
   responseMimeType: "text/plain",
+  candidateCount: 1,
 };
 
+// Enhanced code generation config
 const codeGenerationConfig = {
-  temperature: 1,
-  topP: 0.95,
-  topK: 40,
+  temperature: 0.3,  // Lower temperature for more consistent code
+  topP: 0.6,         // More focused responses
+  topK: 10,          // More deterministic for code
   maxOutputTokens: 8192,
   responseMimeType: "application/json",
+  candidateCount: 1,
 };
 
 export const chatSession = model.startChat({

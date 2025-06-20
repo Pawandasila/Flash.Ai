@@ -108,7 +108,7 @@ const Provider = ({ children }: ProviderProps) => {
         <MessageContext.Provider value={{ message, setMessage }}>
           <NextThemesProvider
             attribute="class"
-            defaultTheme="system"
+            defaultTheme="dark"
             enableSystem
             disableTransitionOnChange
           >

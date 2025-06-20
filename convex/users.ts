@@ -49,9 +49,14 @@ export const updateToken = mutation({
     token: v.number(),
     userId: v.id("users"),
   },
-  handler: async (ctx, agrs) => {
-    const result = await ctx.db.patch(agrs.userId, {
-      token: agrs.token,
+  handler: async (ctx, args) => {
+    // Validate token is not negative
+    if (args.token < 0) {
+      throw new Error("Token count cannot be negative");
+    }
+
+    const result = await ctx.db.patch(args.userId, {
+      token: args.token,
     });
 
     return result;
