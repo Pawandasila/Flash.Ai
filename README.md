@@ -65,4 +65,62 @@ It leverages the latest advancements in AI while ensuring **fast performance, sc
 ---
 
 ## 📂 Project Structure
+flash-ai/
+├── app/ # Next.js App Router pages
+├── components/ # Reusable components
+├── lib/ # API and utility functions
+├── styles/ # Tailwind and global styles
+├── convex/ # Backend configuration
+├── public/ # Static assets
+└── ...
 
+yaml
+Copy
+Edit
+
+---
+
+## 🚀 Getting Started
+
+1️⃣ **Clone the repository:**
+
+```
+git clone https://github.com/Pawandasila/Flash.Ai.git
+cd Flash.Ai
+```
+2️⃣ Install dependencies:
+
+bash
+Copy
+Edit
+npm install
+# or
+yarn install
+# or
+pnpm install
+3️⃣ Set up environment variables:
+
+Create a .env.local file:
+
+ini
+Copy
+Edit
+OPENAI_API_KEY=your_openai_key
+GEMINI_API_KEY=your_gemini_key
+NEXT_PUBLIC_CONVEX_URL=your_convex_url
+4️⃣ Run locally:
+
+```
+npm run dev
+```
+Open http://localhost:3000 in your browser to view it.
+
+🤝 Contributing
+✨ Contributions are welcome! Fork this repo, create your feature branch, commit changes, and open a Pull Request.
+
+📄 License
+This project is licensed under the MIT License.
+
+<div align="center">
+🌟 Built with ❤️ by Pawan Dasila for the developer community.
+</div> 
