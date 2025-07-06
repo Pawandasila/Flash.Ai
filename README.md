@@ -32,6 +32,21 @@
 
 </div>
 
+</div>
+
+---
+
+## 📋 Table of Contents
+
+- [🚀 Project Overview](#-project-overview)
+- [✨ Key Features](#-key-features)
+- [🛠️ Tech Stack](#️-tech-stack)
+- [📂 Project Structure](#-project-structure)
+- [🚀 Getting Started](#-getting-started)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
+- [📬 Contact](#-contact)
+
 ---
 
 ## 🚀 Project Overview
@@ -65,6 +80,8 @@ It leverages the latest advancements in AI while ensuring **fast performance, sc
 ---
 
 ## 📂 Project Structure
+
+```
 flash-ai/
 ├── app/ # Next.js App Router pages
 ├── components/ # Reusable components
@@ -73,54 +90,88 @@ flash-ai/
 ├── convex/ # Backend configuration
 ├── public/ # Static assets
 └── ...
-
-yaml
-Copy
-Edit
+```
 
 ---
 
 ## 🚀 Getting Started
 
-1️⃣ **Clone the repository:**
+Follow these steps to get the project up and running on your local machine.
 
-```
-git clone https://github.com/Pawandasila/Flash.Ai.git
-cd Flash.Ai
-```
-2️⃣ Install dependencies:
+### Prerequisites
 
-bash
-Copy
-Edit
-npm install
-# or
-yarn install
-# or
-pnpm install
-3️⃣ Set up environment variables:
+Make sure you have the following installed:
 
-Create a .env.local file:
+- **Node.js** (v18 or higher)
+- **npm** or **yarn** or **pnpm**
+- **Git**
 
-ini
-Copy
-Edit
-OPENAI_API_KEY=your_openai_key
-GEMINI_API_KEY=your_gemini_key
-NEXT_PUBLIC_CONVEX_URL=your_convex_url
-4️⃣ Run locally:
+### Installation
 
-```
-npm run dev
-```
-Open http://localhost:3000 in your browser to view it.
+1.  **Clone the repository:**
 
-🤝 Contributing
-✨ Contributions are welcome! Fork this repo, create your feature branch, commit changes, and open a Pull Request.
+    ```bash
+    git clone https://github.com/Pawandasila/Flash.Ai.git
+    cd Flash.Ai
+    ```
 
-📄 License
+2.  **Install dependencies:**
+
+    ```bash
+    npm install
+    # or
+    yarn install
+    # or
+    pnpm install
+    ```
+
+3.  **Set up environment variables:**
+
+    Create a `.env.local` file in the root of the project and add your API keys and Convex URL:
+
+    ```ini
+    OPENAI_API_KEY=your_openai_key
+    GEMINI_API_KEY=your_gemini_key
+    NEXT_PUBLIC_CONVEX_URL=your_convex_url
+    ```
+
+4.  **Run locally:**
+
+    ```bash
+    npm run dev
+    ```
+
+    Open [http://localhost:3000](http://localhost:3000) in your browser to view the application.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! If you'd like to contribute, please follow these steps:
+
+1.  Fork the repository.
+2.  Create a new branch (`git checkout -b feature/your-feature-name`).
+3.  Make your changes and commit them (`git commit -m 'Add your feature'`).
+4.  Push to the branch (`git push origin feature/your-feature-name`).
+5.  Open a Pull Request.
+
+---
+
+## 📄 License
+
 This project is licensed under the MIT License.
+
+---
+
+## 📬 Contact
+
+If you have any questions or feedback, feel free to reach out:
+
+-   **GitHub**: [@Pawandasila](https://github.com/Pawandasila)
+-   **Live Demo**: [Flash AI Live](https://flash-ai-pro.vercel.app/)
+
+---
 
 <div align="center">
 🌟 Built with ❤️ by Pawan Dasila for the developer community.
-</div> 
+</div>
